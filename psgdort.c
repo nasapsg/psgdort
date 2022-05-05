@@ -20,7 +20,7 @@
 // VH1,VH2: Van de Hulst, H.C., 1980: Multiple Light Scattering, Tables, Formulas and Applications, Volumes 1 and 2, Academic Press, New York.
 //       W: Wiscombe, W., 1977:  The Delta-M Method: Rapid Yet Accurate Radiative Flux Calculations, J. Atmos. Sci. 34, 1408-1422
 //-----------------------------------------------------------------------------------------------------------------
-// Function prototpypes
+// Function prototypes
 void asymtx(double **aa, double **evec, double *eval, int m, int ia, int ievec, double *wk);
 void sgeco(double **a, int lda, int n, int *ipvt, double *rcond, double *z);
 void sgesl(double **a, int lda, int n, int *ipvt, double *b, int job);

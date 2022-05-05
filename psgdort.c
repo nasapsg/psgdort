@@ -190,7 +190,6 @@ void psgdort(
   // Initialize parameters for the scattering calculation
   // ---------------------------------------------------------------
   // Compute gaussian quadrature angles and weights ----------------
-  //if (twostr && fstar[0]*umu0>little) { cmu[0]=sqrt(1.0/3.0); cwt[0] = 1.0; }
   if (twostr && fstar[0]*umu0>little) { cmu[0]=0.5; cwt[0] = 1.0; }
   else if (nmax == 1) { cmu[0]=0.5; cwt[0] = 1.0; }
   else {
@@ -372,7 +371,6 @@ void psgdort(
       tt += dtauc[k];
       ssalb[k] = phfunc[0][lc][bi][lf]; if (ssalb[k]>albmax) ssalb[k] = albmax;
       for (j=0; j<=nmom; j++) pmom[j][k] = phfunc[j][lc][bi][lf]/(phfunc[0][lc][bi][lf] + DBL_EPSILON);
-      //if (pmom[nstr][k]!=0.0 && (nstr>2 || pmom[nstr][k]<0.09 || pmom[nstr][k]>0.11)) needm=1; // Don't add delta-m for Rayleigh
       if (pmom[nstr][k]!=0.0) needm=1;
     }
     if (!usrtau) {

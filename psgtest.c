@@ -18,9 +18,6 @@
 #define HAZE_GARCIA_SIEWERT  4
 #define CLOUD_GARCIA_SIEWERT 5
 
-// ---------------------------------------------
-// Main function - Read PSG input file and call scatter
-// ---------------------------------------------
 // Memory allocation functions
 double *array1D(long m1, int clear) {
   double *ptr; long i;
@@ -82,7 +79,6 @@ void testprint(int nphi, int ntau, int numu, double *phi, double *utau, double *
 
 // Main function
 int main() {
-
   psgtest01();
   psgtest02();
   psgtest03();

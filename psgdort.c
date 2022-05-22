@@ -5,6 +5,7 @@
 //----------------------- References ----------------------------------------------------------------------------------
 //    DGIS: Devaux C, Grandjean P, Ishiguro Y, Siewert CE, 1979, On Multi-Region Problems in Radiative Transfer, Astrophys. Space Sci. 62, 225-233
 //      GS: Garcia RDM, Siewert CE, 1985, Benchmark Results in Radiative Transfer, Transport Theory and Statistical Physics 14, 437-483
+//      DS: Dahlback, A. and K. Stamnes 1991: A new spherical model for computing the radiation field available for photolysis and heating at twilight, Planet. Space Sci. 39, 671-683.
 //      KS: Kylling A, Stamnes K, 1992, Efficient yet accurate solution of the linear transport equation in the presence of internal sources: The exponential-linear-in-depth approximation, J. Comp. Phys., 102, 265-276
 //       L: Lenoble J, ed, 1985:  Radiative Transfer in Absorbing and Scattering Atmospheres: Standard Computational Procedures, Deepak Publishing, Hampton, Virginia
 //      NT: Nakajima T, Tanaka M, 1988,  Algorithms for Radiative Intensity Calculations in Moderately Thick Atmospheres Using a Truncation Approximation, J.Q.S.R.T. 40, 51-69
@@ -59,13 +60,13 @@ void psgdort(
   double *temper,// ......... Temperature [K] at the each layer, only needed when thermal emission is required and no srclyr is provided
   double btemp,// ........... Temperature [K] of the lower boundary (e.g., surface), only needed when thermal emission is required and no srclyr is provided
   double ttemp,// ........... Temperature [K] of the top boundary (e.g., TOA), only needed when thermal emission is required and no srclyr is provided
-  double **pumu, double **putau, double **pdfdt, double **pfldir, double **pfldn, double **pflup, double **prfldir, double **prfldn, double *****puu) {
+  double **pumu, double **putau, double **pdfdt, double **puavg, double **pfldir, double **pfldn, double **pflup, double **prfldir, double **prfldn, double *****puu) {
 
   // Allocate and initialize scalars
   int twostr=0, numu2=numu; if (nmax<=0) { twostr=1; nmax=1; numu=0; }
   int nstr=2*nmax, naz=nstr, mmom=(nstr>nmom ? nstr : nmom);
   long lf,li,lkf, nlam=(l2-l1)*nfine*nbin; int i, j, k, l, bi, iu, iq, jq, kq, it, ipnt, mazim, deltam, needm, ncut, nl, lc, lu, lyu, kconv, usrtau=1, wsrc, usrang=1;
-  double delm0, sum, alpha, beta, gpmigm, gpplgm, rcond, psum0, psum1, fact, expa, diff, dirint;
+  double delm0, sum, alpha, beta, gpmigm, gpplgm, rcond, psum0, psum1, fact, expa, diff, dirint, refflx;
   double tt, abstau, fm, fdntot, plsorc, azerr, cosphi, azterm, cratio, fbeam, tplanck=0.0, bplanck=0.0, big = sqrt(DBL_MAX)/1.e+10, q0a, q2a, deltat, q0, q2, albmax=1.0 - 1000.*DBL_EPSILON;
   double small = 1.e+30*DBL_MIN, little = 1.e+20*DBL_MIN, large = log(DBL_MAX)-20.0, val;
   if (numu<=0) { numu=nstr; usrang=0; }
@@ -75,6 +76,7 @@ void psgdort(
 
   // Allocate output arrays (if not previously allocated)
   if (*pdfdt==NULL) *pdfdt = array1D(ntau,1);// .......... Flux divergence d(net flux)/d(optical depth),where 'net flux' includes the direct beam (an exact result;  not from differencing fluxes)
+  if (*puavg==NULL) *puavg = array1D(ntau,1);// .......... Mean intensity (including the direct beam)
   if (*pfldir==NULL) *pfldir = array1D(ntau,1);// ........ Direct-beam flux (delta-M scaled)
   if (*pfldn==NULL) *pfldn = array1D(ntau,1);// .......... Diffuse down-flux (delta-M scaled)
   if (*pflup==NULL) *pflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -83,7 +85,7 @@ void psgdort(
   if (*pumu==NULL) *pumu = array1D(numu,1);// ..,......... Zenith angles at desired intensities
   if (*puu==NULL) *puu = array4D(nlam,numu,ntau,nphi,1);// Corrected intensity field
   if (*putau==NULL) *putau = array1D(ntau,1);// .......... Optical depths of user output levels
-  double *umu = *pumu, *utau=*putau, *dfdt=*pdfdt, *fldir=*pfldir, *fldn=*pfldn, *flup=*pflup, *rfldir=*prfldir, *rfldn=*prfldn, ****uu=*puu;
+  double *umu = *pumu, *utau=*putau, *dfdt=*pdfdt, *uavg=*puavg, *fldir=*pfldir, *fldn=*pfldn, *flup=*pflup, *rfldir=*prfldir, *rfldn=*prfldn, ****uu=*puu;
 
   // Allocate variables common to full discrete-ordinate solver and two-streams approximation
   double *b = array1D(nstr*nlyr,1);// .................... Right-hand side vector of eq. SC(5) going into SOLVE0,1, returns as solution vector vector  L, the constants of integration
@@ -110,7 +112,6 @@ void psgdort(
   double *tauc = array1D(nlyr+1,1);// .................... Cumulative optical depth (un-delta-M-scaled)
   double *taucpr = array1D(nlyr+1,1);// .................. Cumulative optical depth (delta-M-scaled if DELTAM = 1, otherwise equal to TAUC)
   double **u0c = array2D(nstr,ntau,1);// ................. Azimuthally-averaged intensity at quadrature angle
-  double *uavg = array1D(ntau,1);// ...................... Mean intensity (including the direct beam)
   double *utaupr = array1D(ntau,1);// .................... Optical depths of user output levels in delta-M coordinates; equal to UTAU(LU) if no delta-M
   double ***ylm0 = array3D(nstr,nstr,1,1);// ............. Normalized associated Legendre polynomial of subscript L at the beam angle
   double ***ylmc = array3D(nstr,nstr,nstr,1);// .......... Normalized associated Legendre polynomial of subscript L at the computational angles
@@ -253,8 +254,14 @@ void psgdort(
     for (iu = nmax; iu < nstr; iu++) umu[iu] =  cmu[iu-nmax];
   }
 
-  // Dither observation angles if they match exactly the incidence angle
-  for (iu=0; iu<numu; iu++) if (fabs(umu[iu]+umu0)<1e-6) { if ((umu[iu]+1e-6)>1.0) umu[iu] -= 1e-6; else umu[iu] += 1e-6; }
+  // Dither observation angles if they match exactly the incidence angle or are close to tangential
+  for (iu=0; iu<numu; iu++) {
+    if (umu[iu]>1.0) umu[iu]=1.0;
+    else if (umu[iu]<-1.0) umu[iu]=-1.0;
+    else if (umu[iu]<1e-5 && umu[iu]>=0) umu[iu]=1e-5;
+    else if (umu[iu]>-1e-5 && umu[iu]<0) umu[iu]=-1e-5;
+    if (fabs(umu[iu]+umu0)<1e-6) { if ((umu[iu]+1e-6)>1.0) umu[iu] -= 1e-6; else umu[iu] += 1e-6; }
+  }
 
   // Compute Legendre polynomials -----------------------------------------
   for (mazim = 0; mazim < nstr && !twostr; mazim++) {
@@ -312,7 +319,7 @@ void psgdort(
   for (lc=0; lc<nlyr; lc++) {
     for (k=0; k<2; k++) {
       if (hinv) { zdm1 = alts[nlyr-lc]; zd = alts[nlyr-lc-1]; } else { zdm1 = alts[lc]; zd = alts[lc+1]; }
-      xp   = radius + zd + (zdm1 - zd)*(k==0 ? 0.0 : 0.5);
+      xp = radius + zd + (zdm1 - zd)*(k==0 ? 0.0 : 0.5);
       xpsinz = xp*sinz;
       if (sunangle>90.0 && xpsinz<radius) {
         chscl[lc][lc][k] = 1e20;
@@ -379,9 +386,9 @@ void psgdort(
       if (hinv) lc=nlyr-ulyr; else lc=ulyr;
       utau[0] = tauc[lc];
     }
-    if (!needm) deltam=0;
+    if (!needm || umu0<0.1) deltam=0;
     lkf = (lf - l1*nfine)*nbin + bi;
-    fbeam = fstar[li]*M_PI; if (umu0<1e-5) fbeam=0.0;
+    fbeam = fstar[li]*M_PI;
 
     // Apply delta-M scaling and move description of computational layers to local variables
     for (k = 0, ncut=0, abstau=0.0; k < nlyr; k++) {
@@ -461,7 +468,7 @@ void psgdort(
     // Compute the two-streams approximation if asked
     // ---------------------------------------------------------------
     if (twostr) {
-      double fact1, fact2, fact3, fact4, q_1, q_2, qq, q1a, q1, denomb, denomp, z0p, z0m, arg, sgn, wk0, wk1, wk2, rpp1_m, rpp1_p, rp_m, rp_p, refflx;
+      double fact1, fact2, fact3, fact4, q_1, q_2, qq, q1a, q1, denomb, denomp, z0p, z0m, arg, sgn, wk0, wk1, wk2, rpp1_m, rpp1_p, rp_m, rp_p;
       double xb0d, xb0u, xb1d, xb1u;
       int nrow, irow, nloop, info;
 
@@ -1167,8 +1174,9 @@ void psgdort(
                        ( zbeam0[nmax-1-jq][ncut-1] + zbeam1[nmax-1-jq][ncut-1]*taucpr[ncut])
                        + zplk0[nmax-1-jq][ncut-1] + zplk1[nmax-1-jq][ncut-1]*taucpr[ncut]);
               }
+              if (umu0 <= 0.) refflx = 0.; else refflx = 1.0;
               b[ncol-nmax+iq] = 2.0*sum +
-                                ( bdr[iq][0]*umu0*fbeam/M_PI)*expbea[ncut]
+                                ( bdr[iq][0]*umu0*refflx*fbeam/M_PI)*expbea[ncut]
                                 -  exp(-zbeama[ncut-1]*taucpr[ncut])*
                                 (zbeam0[iq+nmax][ncut-1]+zbeam1[iq+nmax][ncut-1]*taucpr[ncut])
                                 + bem[iq]*bplanck
@@ -1210,24 +1218,21 @@ void psgdort(
 
       // Compute upward and downward fluxes (only for the first wavelength/bin)
       if (mazim == 0 && lf==l1 && bi==0) {
-        for (iq = 0; iq < nstr; iq++) memset(u0c[iq],0,ntau*sizeof(double));
-        memset(uavg, 0,ntau*sizeof(double));
-        memset(fldn, 0,ntau*sizeof(double));
-        memset(flup, 0,ntau*sizeof(double));
-
         for (lu = 0; lu < ntau; lu++) {
+          for (iq = 0; iq < nstr; iq++) u0c[iq][lu] = 0.0;
+          dfdt[lu] = 0.0; uavg[lu] = 0.0;
+          flup[lu] = 0.0; fldn[lu] = 0.0; rfldn[lu] = 0.0;
+          rfldir[lu] = 0.0; dirint = 0.0; fldir[lu] = 0.0;
           lyu = layru[lu];
           if (ncut<nlyr && lyu >= ncut) continue; // No radiation reaches this level
 
-          if (fbeam > 0.0) {
-            fact       = exp(-utaupr[lu]/ch[lyu]);
-            rfldir[lu] = fabs(umu0)*fbeam*exp(-utau[lu]/ch[lyu]);
-            dirint     = fbeam*fact;
-            fldir[lu]  = umu0*fbeam*fact;
-          } else {
-            rfldir[lu] = 0.0;
-            dirint     = 0.0;
-            fldir[lu]  = 0.0;
+          if (fbeam>0.0) {
+            fact   = exp(-utaupr[lu]/ch[lyu]);
+            dirint = fbeam*fact;
+            if (umu0>0) {
+              rfldir[lu] = umu0*fbeam*exp(-utau[lu]/ch[lyu]);
+              fldir[lu]  = umu0*fbeam*fact;
+            }
           }
 
           for (iq = 0; iq < nmax; iq++) {
@@ -1423,7 +1428,7 @@ void psgdort(
               bnddfu += (1.+delm0)*rmu[iu][nmax-1-iq]*cmu[nmax-1-iq]*cwt[nmax-1-iq]*dfuint;
             }
             bnddir = 0.;
-            if (fbeam > 0. || umu0 >0.) bnddir = umu0*fbeam/M_PI*rmu[iu][0]*expbea[nlyr];
+            if (fbeam > 0. && umu0 >0.) bnddir = umu0*fbeam/M_PI*rmu[iu][0]*expbea[nlyr];
             bndint = (bnddfu+bnddir+delm0*emu[iu]*bplanck)*exp((utaupr[lu]-taucpr[nlyr])/umu[iu]);
           }
           uum[iu][lu] = palint+plkint+bndint;
@@ -1505,7 +1510,7 @@ void psgdort(
                 lyu  = layru[lu];
                 tt = utaupr[lu];
                 ans  = 0.0;
-                exp0 = exp(-tt/umu0);
+                exp0=exp(-tt/umu0);
 
                 if (fabs(umu[iu]+umu0) <= 100.*DBL_EPSILON) {
                   // Calculate downward intensity when umu=umu0, eq. STWL (65e)
@@ -1608,7 +1613,7 @@ void psgdort(
   free(b); free2D(cband,9*nmax-2); free(ch); free(chtau); free3D(chscl,nlyr,nlyr); free(cmu); free(cwt);
   free(dtauc); free(dtaucpr); free(expbea); free(flyr); free(ggprim); free2D(gl,nstr); free3D(gu,numu,nstr);
   free(ipvt); free(layru); free2D(ll,nstr); free(lsrc); free(oprim); free2D(pmom,nstr+1); free(ssalb);
-  free(tauc); free(taucpr); free2D(u0c,nstr); free(uavg); free(utaupr); free3D(ylm0,nstr,nstr);
+  free(tauc); free(taucpr); free2D(u0c,nstr); free(utaupr); free3D(ylm0,nstr,nstr);
   free3D(ylmc,nstr,nstr); free3D(ylmu,nstr,nstr);
 
   if (twostr) {

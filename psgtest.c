@@ -18,6 +18,9 @@
 #define HAZE_GARCIA_SIEWERT  4
 #define CLOUD_GARCIA_SIEWERT 5
 
+// ---------------------------------------------
+// Main function - Read PSG input file and call scatter
+// ---------------------------------------------
 // Memory allocation functions
 double *array1D(long m1, int clear) {
   double *ptr; long i;
@@ -74,11 +77,13 @@ void psgtest10(void);
 void psgtest11(void);
 void psgtest12(void);
 void psgtest14(void);
+void psgtest15(void);
 void getphase(int iphas, double gg, double albedo, int nmom, int ilyr, double ****phfunc);
 void testprint(int nphi, int ntau, int numu, double *phi, double *utau, double *umu, double *rfldir, double *rfldn, double *flup, double *dfdt, double ****uu, double *grfldir, double *grfldn, double *gflup, double *gdfdt, double ****guu);
 
 // Main function
 int main() {
+
   psgtest01();
   psgtest02();
   psgtest03();
@@ -92,6 +97,7 @@ int main() {
   psgtest11();
   psgtest12();
   psgtest14();
+  psgtest15();
   return 0;
 }
 
@@ -124,7 +130,7 @@ void psgtest01(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -241,7 +247,7 @@ void psgtest01(void) {
 
     // Call the scattering module
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-            &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+            &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     // Compare results
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
@@ -280,7 +286,7 @@ void psgtest02(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -363,7 +369,7 @@ void psgtest02(void) {
                         icas,utau[1],umu0,phfunc[0][0][0][0]);
 
       psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-            &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+            &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
       testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
     }
@@ -401,7 +407,7 @@ void psgtest03(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -459,7 +465,7 @@ void psgtest03(void) {
                       icas,gg,utau[1],phfunc[0][0][0][0]);
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -496,7 +502,7 @@ void psgtest04(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = array4D(nlam,numu,ntau,nphi,1);
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = array4D(nlam,numu,ntau,nphi,1);
 
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
@@ -620,7 +626,7 @@ void psgtest04(void) {
     }
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -658,7 +664,7 @@ void psgtest05(void) {
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
   double ****pmoms = array4D(nlam, nbin, nlyr, mmom+1, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -722,7 +728,7 @@ void psgtest05(void) {
     }
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -766,6 +772,7 @@ void psgtest06(void) {
   double *fldn = array1D(ntau,1);// ........... Diffuse down-flux
   double *fldir = array1D(ntau,1);// .......... Direct flux
   double *dfdt = array1D(ntau,1);// ........... Flux divergence d(net flux)/d(optical depth),where 'net flux' includes the direct beam (an exact result;  not from differencing fluxes)
+  double *uavg = array1D(ntau,1);// ........... Mean intensity
   double ****uu = array4D(nlam,numu,ntau,nphi,1);//.  Corrected intensity field
 
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
@@ -879,7 +886,7 @@ void psgtest06(void) {
     dfdt=NULL, fldir=NULL, fldn=NULL, flup=NULL, rfldir=NULL, rfldn=NULL, uu = NULL;
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -926,6 +933,7 @@ void psgtest07(void) {
   double *fldn = array1D(ntau,1);// ........... Diffuse down-flux
   double *fldir = array1D(ntau,1);// .......... Direct flux
   double *dfdt = array1D(ntau,1);// ........... Flux divergence d(net flux)/d(optical depth),where 'net flux' includes the direct beam (an exact result;  not from differencing fluxes)
+  double *uavg = array1D(ntau,1);// ........... Mean intensity
   double ****uu = array4D(nlam,numu,ntau,nphi,1);//.  Corrected intensity field
 
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
@@ -1125,7 +1133,7 @@ void psgtest07(void) {
     }
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -1164,7 +1172,7 @@ void psgtest08(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu = NULL;
 
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
@@ -1248,7 +1256,7 @@ void psgtest08(void) {
     }
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -1287,7 +1295,7 @@ void psgtest09(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=array4D(nlam,numu,ntau,nphi,1);
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=array4D(nlam,numu,ntau,nphi,1);
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -1435,7 +1443,7 @@ void psgtest09(void) {
     }
 
     psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-          &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+          &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
     testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, grfldir, grfldn, gflup, gdfdt, guu);
   }
@@ -1472,7 +1480,7 @@ void psgtest10(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -1515,16 +1523,16 @@ void psgtest10(void) {
   if (VERBOSE) printf("\n\nTest Case No. 10a:  like 9c, ds.flag.usrang = TRUE\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+        &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
   // Case 2
-  double *dfdt2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
+  double *dfdt2=NULL, *uavg2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
   numu = 0;
 
   if (VERBOSE) printf("\n\nTest Case No. 10a:  like 9c, ds.flag.usrang = FALSE\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
+        &umu, &utau, &dfdt2, &uavg2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
 
   numu = nstr;
   testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, rfldir2, rfldn2, flup2, dfdt2, uu2);
@@ -1565,7 +1573,7 @@ void psgtest11(void) {
   double *temper = array1D(nlyr+1,1);
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -1598,10 +1606,10 @@ void psgtest11(void) {
   if (VERBOSE) printf("\n\nTest Case No. 11a: One Isotropic-Scattering Layer\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+        &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
   // Case 2
-  double *dfdt2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
+  double *dfdt2=NULL, *uavg2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
   ntau = 0;
   nlyr = 3;
   for (lc = 1; lc <= nlyr; lc++) {
@@ -1612,7 +1620,7 @@ void psgtest11(void) {
   if (VERBOSE) printf("\n\nTest Case No. 11b: Same as 11a but treated as multiple layers\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
+        &umu, &utau, &dfdt2, &uavg2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
 
   ntau = nlyr+1;
   testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, rfldir2, rfldn2, flup2, dfdt2, uu2);
@@ -1654,7 +1662,7 @@ void psgtest12(void) {
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
   double ****pmoms = array4D(nlam, nbin, nlyr, mmom+1, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
   double *grfldir = array1D(ntau,1);// ........ Direct-beam flux (without delta-m scaling)
   double *grfldn = array1D(ntau,1);// ......... Diffuse down-flux (total minus direct-beam) (without delta-m scaling)
   double *gflup = array1D(ntau,1);// .......... Diffuse up-flux
@@ -1688,10 +1696,10 @@ void psgtest12(void) {
   if (VERBOSE) printf("\n\nTest Case No. 12a:  Overhead Beam Striking Absorbing/Scattering Medium\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+        &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
   // Case 2
-  double *dfdt2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
+  double *dfdt2=NULL, *uavg2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
   nlyr = ntau-1;
   for (lc = 1; lc <= nlyr; lc++) {
     dtau[lc-1][0][0] = utau[lc]-utau[lc-1];
@@ -1701,7 +1709,7 @@ void psgtest12(void) {
   if (VERBOSE) printf("\n\nTest Case No. 12b: Same as 12a but uses shortcut for absorption optical depth > 10\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
+        &umu, &utau, &dfdt2, &uavg2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
 
   testprint(nphi, ntau, numu, phi, utau, umu, rfldir, rfldn, flup, dfdt, uu, rfldir2, rfldn2, flup2, dfdt2, uu2);
 }
@@ -1739,7 +1747,7 @@ void psgtest14(void)
   double ***dtau = array3D(nlyr, nbin, nlam, 1);
   double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
   double ****pmoms = array4D(nlam, nbin, nlyr, mmom+1, 1);
-  double *dfdt=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=NULL;
 
   fstar[0]  = 1.0;
   umu0      = 0.5;
@@ -1772,17 +1780,123 @@ void psgtest14(void)
   if (VERBOSE) printf("\n\nTest Case No. 14a: disort() as in 10b\n");
 
   psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, 0, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+        &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
 
   // Case 2 - Two streams approximation
-  double *dfdt2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
-  //radius = 6378.0;
+  double *dfdt2=NULL, *uavg2=NULL, *fldir2=NULL, *fldn2=NULL, *flup2=NULL, *rfldir2=NULL, *rfldn2=NULL, ****uu2=NULL;
 
   psgdort(0, nlam, 1, nbin, nlyr, 0, nmom, 0, nphi, ntau, -1, umu0, phi, radius, alts, dtau, phfunc, fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
-        &umu, &utau, &dfdt2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
+        &umu, &utau, &dfdt2, &uavg2, &fldir2, &fldn2, &flup2, &rfldir2, &rfldn2, &uu2);
 
   testprint(nphi, ntau, 2, phi, utau, umu, rfldir2, rfldn2, flup2, dfdt2, uu2, rfldir, rfldn, flup, dfdt, uu);
 
+  return;
+}
+
+//========================== psgtest15() ==============================
+//---------------------------------------------------------------------
+//---  Test Problem 15:  Scattering in a spherical atmosphere ---------
+//---- as described Dahlback and Stamnes (1991). Very high solar angles  ----
+//---------------------------------------------------------------------
+void psgtest15(void) {
+
+  int nstr =  8;
+  int nlyr =  45;
+  int nmom =  8;
+  int ntau =  1;
+  int numu =  1;
+  int nphi =  1;
+  int mmom   = (nmom>nstr ? nmom : nstr);
+
+  double umu0,sza;
+  double radius=6378.0;
+  double *phi = array1D(nphi,1);
+  double *umu  = array1D(numu,1);
+  double *utau = array1D(ntau,1);
+  long nlam=1, l1=0, l2=nlam; int nbin=1, i, icas, nmax=nstr/2, k, lc, numbad=0;
+  double *lamc  = array1D(1,1), dlam=0.0;
+  double *fstar = array1D(1,1);
+  double *tsrf  = array1D(1,1);
+  double *esrf  = array1D(1,1);
+  double fisot=0.0, btemp=0.0, ttemp=0.0, temis=0.0, gg, albedo;
+  double *alts = array1D(nlyr+1,1);
+  double *temper = array1D(nlyr+1,1);
+  double ***dtau = array3D(nlyr, nbin, nlam, 1);
+  double ****phfunc = array4D(mmom+1, nlyr, nbin, nlam, 1);
+  double *dfdt=NULL, *uavg=NULL, *fldir=NULL, *fldn=NULL, *flup=NULL, *rfldir=NULL, *rfldn=NULL, ****uu=array4D(nlam,numu,ntau,nphi,1);
+  double guavg, rat;
+
+  // here we have to set the layering with the calculated ODs from PSG
+  double dod[59] = {2.1957e-02, 1.9912e-02, 1.7955e-02, 1.6166e-02, 1.4525e-02, 1.3026e-02,
+                    1.1648e-02, 1.0409e-02, 9.2489e-03, 8.2062e-03, 7.2645e-03, 6.3280e-03,
+                    5.4197e-03, 4.6415e-03, 3.9786e-03, 3.4175e-03, 2.9302e-03, 2.5306e-03,
+                    2.1839e-03, 1.8877e-03, 1.6277e-03, 1.4054e-03, 1.2093e-03, 1.0447e-03,
+                    9.0168e-04, 1.7527e-03, 1.2067e-03, 8.3501e-04, 5.7474e-04, 3.9239e-04,
+                    2.6794e-04, 1.8261e-04, 1.2561e-04, 8.6586e-05, 6.1551e-05, 7.7498e-05,
+                    4.1899e-05, 2.2168e-05, 1.1372e-05, 5.6506e-06, 2.7214e-06, 1.2220e-06,
+                    5.3430e-07, 2.1994e-07, 8.8530e-08, 3.4397e-08, 1.4231e-08, 5.7869e-09,
+                    2.6308e-09, 4.3127e-09, 5.7905e-10, 1.8858e-10, 7.7267e-11, 3.4524e-11,
+                    1.6750e-11, 8.3238e-12, 4.2508e-12, 2.2332e-12, 1.1627e-12};
+
+  double h[60] = {0.0000, 1.0037, 2.0097, 3.0146, 4.0191, 5.0231, 6.0270, 7.0304, 8.0352,
+                  9.0386, 10.0420, 11.0460, 12.0500, 13.0540, 14.0580, 15.0620, 16.0670,
+                  17.0690, 18.0730, 19.0770, 20.0810, 21.0840, 22.0890, 23.0910, 24.0950,
+                  25.1000, 27.6080, 30.1170, 32.6280, 35.1370, 37.6470, 40.1570, 42.6640,
+                  45.1740, 47.6710, 50.1910, 55.1880, 60.2230, 65.2430, 70.2450, 75.2420,
+                  80.3050, 85.3100, 90.3430, 95.3750, 100.4200, 105.3100, 110.2200, 114.9700,
+                  119.6200, 141.2800, 159.1100, 176.0500, 192.3600, 207.8200, 222.7900,
+                  237.1000, 250.8100, 264.0800, 276.6100};
+
+  for (lc = 1; lc <= nlyr; lc++) {
+    dtau[lc-1][0][0] = dod[lc-1];
+    alts[lc] = h[lc];
+  }
+
+  lamc[0]  = 0.300;
+  dlam     = 0.001;
+  tsrf[0]  = 0.2;
+  esrf[0]  = 1.0 - tsrf[0];
+  fstar[0] = 1.0;
+  umu[0]   = 0.5;
+  phi[0]   = 0.0;
+  for (lc = 0; lc < nlyr; lc++) {
+    if (lc<nlyr) getphase(RAYLEIGH, 0.0, 0.5, nmom, lc, phfunc);
+    temper[lc] = btemp;
+  }
+
+  if (VERBOSE) printf("\n\nTest Case No. 15: Scattering in a spherical atmosphere, Ref. DS, Figure 8\n\n\n");
+
+  for (icas = 1; icas <= 7; icas++) {
+    switch(icas) {
+      // Mean intensities at all layers were compared / validated
+      // for all cases and all layers to Figure 8 of DS
+      // and "good" values were actually computed with PSGDORT
+      case 1: sza = 60.0; guavg=2.353556e-01; break;
+      case 2: sza = 80.0; guavg=1.110075e-01; break;
+      case 3: sza = 90.0; guavg=3.583724e-03; break;
+      case 4: sza = 92.0; guavg=9.840432e-04; break;
+      case 5: sza = 94.0; guavg=1.465116e-04; break;
+      case 6: sza = 96.0; guavg=9.536168e-06; break;
+      case 7: sza = 98.0; guavg=1.691894e-07; break;
+    }
+    umu0 = cos(sza*M_PI/180.);
+
+    for (int u=0; u<1;u++){
+      psgdort(0, nlam, 1, nbin, nlyr, nmax, nmom, numu, nphi, ntau, u, umu0, phi, radius, alts, dtau, phfunc,
+            fstar, tsrf, esrf, temis, NULL, fisot, lamc, dlam, temper, btemp, ttemp,
+            &umu, &utau, &dfdt, &uavg, &fldir, &fldn, &flup, &rfldir, &rfldn, &uu);
+      //printf("%.1f %13.4f %15.4e\n", sza, alts[u], uavg[0]);
+
+      if (u==0) {
+        rat = uavg[0]/guavg;
+        if (rat<0.99 || rat>1.01) numbad++;
+        if (VERBOSE) printf("%e %e (%9.4f)\n", uavg[0], guavg, uavg[0]/guavg);
+      }
+
+    }
+  }
+
+  if (numbad > 0) printf(" ====  %4d  SERIOUSLY NON-UNIT RATIOS    ====\n", numbad);
   return;
 }
 
